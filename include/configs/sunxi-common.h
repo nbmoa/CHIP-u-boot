@@ -543,6 +543,19 @@ extern int soft_i2c_gpio_scl;
 	"usbnet_devaddr=de:ad:be:af:00:01\0" \
 	"mtdids=nand0=sunxi-nand.0\0" \
 	"mtdparts=mtdparts=sunxi-nand.0:4m(spl),4m(spl-backup),4m(uboot),4m(env),-(UBI)\0" \
+        "activate_bootargs_primary=setenv bootargs root=ubi0:primary-rootfs rootfstype=ubifs rw earlyprintk ubi.mtd=4\0" \
+        "activate_bootargs_secondary=setenv bootargs root=ubi0:secondary-rootfs rootfstype=ubifs rw earlyprintk ubi.mtd=4\0" \
+        "activate_bootargs_primary_initrd=setenv bootargs root=ubi0:primary-rootfs rootfstype=ubifs ro earlyprintk ubi.mtd=4\0" \
+        "activate_bootargs_secondary_initrd=setenv bootargs root=ubi0:secondary-rootfs rootfstype=ubifs ro earlyprintk ubi.mtd=4\0" \
+        "boot_primary=echo booting primary; run activate_bootargs_primary; mtdparts; ubi part UBI; ubifsmount ubi0:primary-rootfs; ubifsload $fdt_addr_r /boot/sun5i-r8-chip.dtb; ubifsload $kernel_addr_r /boot/zImage; bootz $kernel_addr_r - $fdt_addr_r\0" \
+        "boot_secondary=echo booting secondary; run activate_bootargs_secondary; mtdparts; ubi part UBI; ubifsmount ubi0:secondary-rootfs; ubifsload $fdt_addr_r /boot/sun5i-r8-chip.dtb; ubifsload $kernel_addr_r /boot/zImage; bootz $kernel_addr_r - $fdt_addr_r\0" \
+        "set_active_and_fallback=mtdparts; ubi part UBI; ubifsmount ubi0:root-config; if ubifsls /secondary-rootfs; then setenv active secondary; setenv fallback primary; else setenv active primary; setenv fallback secondary; fi\0" \
+        "boot_primary_initrd=echo booting primary; run activate_bootargs_primary_initrd; mtdparts; ubi part UBI; ubifsmount ubi0:primary-rootfs; ubifsload $fdt_addr_r /boot/sun5i-r8-chip.dtb; ubifsload 0x44000000 /boot/initrd.uimage; ubifsload $kernel_addr_r /boot/zImage; bootz $kernel_addr_r 0x44000000 $fdt_addr_r\0" \
+        "boot_secondary_initrd=echo booting secondary; run activate_bootargs_secondary_initrd; mtdparts; ubi part UBI; ubifsmount ubi0:secondary-rootfs; ubifsload $fdt_addr_r /boot/sun5i-r8-chip.dtb; ubifsload 0x44000000 /boot/initrd.uimage; ubifsload $kernel_addr_r /boot/zImage; bootz $kernel_addr_r 0x44000000 $fdt_addr_r\0" \
+        "boot_chain=fel ubi\0" \
+        "call_bootchain=for entry in ${boot_chain}; do run bootcmd_${entry}; done\0" \
+        "bootcmd_ubi=run set_active_and_fallback; run boot_${active}_initrd; run boot_${active}; run boot_${fallback}_initrd; run boot_${fallback}\0" \
+        "bootcmd=run call_bootchain\0" \
 	BOOTENV
 
 #else /* ifndef CONFIG_SPL_BUILD */
